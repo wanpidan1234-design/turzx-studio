@@ -16,7 +16,7 @@ const data = {...source,account:{plan_type:'pro',email:'a•••@example.com'}
     expires_at:Date.parse('2027-01-12T08:00:00Z')/1000,purchase_platform:'chatgpt_mobile_android',currency:'USD'}
 };
 const overview=render(data);
-const overviewHeadings=[...overview.matchAll(/<section class="feature-cell[^"]*"><h2>(.*?)<\/h2>/g)].map(match=>match[1]);
+const overviewHeadings=[...overview.matchAll(/<section class="feature-cell[^"]*"><h2(?: [^>]*)?>(.*?)<\/h2>/g)].map(match=>match[1]);
 assert.deepEqual(overviewHeadings,['Work / Codex','图像生成','深度研究']);
 assert.match(overview,/深度研究/);
 assert.match(overview,/图像生成/);
@@ -24,7 +24,8 @@ assert.match(overview,/1,000<span>次<\/span>/);
 assert.match(overview,/Work \/ Codex/);
 assert.doesNotMatch(overview,/250<span>%/);
 assert.match(render(data,'billing'),/2027\/01\/11/);
-assert.doesNotMatch(render(data,'billing'),/2027\/01\/12/);
+assert.match(render(data,'billing'),/权益到期<\/dt><dd>2027\/01\/12/);
+assert.match(render(data,'billing'),/下次续费<\/dt><dd>2027\/01\/11/);
 assert.match(render(data,'billing'),/Google Play/);
 assert.match(render(data,'billing'),/实扣金额未提供/);
 const priced=structuredClone(data);

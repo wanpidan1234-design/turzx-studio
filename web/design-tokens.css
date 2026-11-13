@@ -1,0 +1,2 @@
+@font-face{font-family:Inter;src:url('fonts/InterVariable.woff2') format('woff2');font-weight:100 900;font-display:swap}
+:root{--font-ui:Inter,'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif;--night-bg:#0e1412;--night-panel:#121a17;--night-line:#24302b;--night-ink:#ecf1ec;--night-muted:#a9b6af;--mint:#8bd3a0;--cyan:#86c8ea;--amber:#e7b45a;--ui-bg:#f5f4f0;--ui-nav:#f1f0eb;--ui-panel:#faf9f6;--ui-line:#e3e1da;--ui-ink:#1b211e;--ui-muted:#5a645f;--ui-primary:#2d5c49;--cream:#fbf4ec;--clay:#a84b26;--cream-ink:#2b211c;--cream-muted:#6b5a4f;--cream-line:#e8dccf}

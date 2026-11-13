@@ -1,0 +1,35 @@
+const {chromium}=require('playwright');const fs=require('fs');
+(async()=>{
+ const out='runtime/designer-verification';fs.mkdirSync(out,{recursive:true});
+ const state=await(await fetch('http://127.0.0.1:8765/api/state')).json(), metrics=await(await fetch('http://127.0.0.1:8765/api/metrics')).json();
+ const b=await chromium.launch({channel:'chrome',headless:true});const p=await b.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));const report=[];
+ const now=Date.now()/1000;const acc=i=>({id:String(i),label:'账号 '+(i+1),email:'member'+i+'@example.com',subscription_type:'Max',status:'live',updated_at:now,usage:{five_hour:{utilization:i===0?99:35.5,resets_at:now+17940},seven_day:{utilization:65,resets_at:now+518400},seven_day_fable:{utilization:12.5,resets_at:now+432000}}});
+ const cases=['system','network','clock','focus','media','guide','calibrate','claude','cswap'].map(page=>({name:page,state:{page}}));
+ for(let n=0;n<=5;n++)cases.push({name:'accounts-'+n,state:{page:'cswap',claude:{status:'live',accounts:Array.from({length:n},(_,i)=>acc(i)),active_account_id:'0'}}});
+ for(const view of ['overview','billing','entitlements'])cases.push({name:'openai-'+view,state:{page:'openai',subscription_view:view}});
+ for(const preset of ['orbit','aurora','flow','stars'])cases.push({name:'animation-'+preset,state:{page:'ambient',animation:{preset,time:15,seed:52,show_clock:true,paused:false}}});
+ for(const [name,left,running] of [['ready',1500,false],['running',720,true],['paused',720,false],['done',0,false]])cases.push({name:'focus-'+name,state:{page:'focus',focus:{duration:1500,remaining:left,running}}});
+
+ const source={status:'live',observed_at:now};
+ const sub={...source,account:{plan_type:'pro',email:'d•••@example.com'},reset_count:2,
+ buckets:[{id:'codex',windows:[{remaining_percent:72,duration_minutes:300,resets_at:now+8100},{remaining_percent:58,duration_minutes:10080,resets_at:now+172800}],credits:{balance:12.5}}],
+ chatgpt_feature_limits:{...source,model_status_provided:true,items:[{id:'image_gen',name:'图像生成',remaining:1000,resets_at:now+7200},{id:'deep_research',name:'深度研究',remaining:12,resets_at:now+172800}]},
+ chatgpt_voice:{...source,modes:[{name:'高级语音',available:true}]},
+ billing:{...source,active:true,will_renew:true,renews_at:now+864000,expires_at:now+950400,period_start:now-86400*20,period_end:now+864000,purchase_platform:'chatgpt_mobile_android',plan_code:'chatgptpro',currency:'USD',billing_period:'monthly'},
+ plan_pricing:{...source,monthly_prices:{chatgptpro:200},currency:'USD',kind:'catalog_reference'}};
+ for(const view of ['overview','billing','entitlements'])cases.push({name:'openai-filled-'+view,state:{page:'openai',subscription_view:view,subscription:sub,subscription_background:'anime',subscription_background_transparency:25}});
+ for(const name of ['stale','error'])cases.push({name:'accounts-'+name,state:{page:'cswap',claude:{accounts:[{...acc(0),status:name,label:'很长的账号名字需要省略显示',usage:{five_hour:{utilization:null},seven_day:{utilization:100,resets_at:now-3600},seven_day_fable:{}}},acc(1),acc(2)],active_account_id:'0'}}});
+ cases.push({name:'network-filled',state:{page:'network'},metrics:{...metrics,network:{recv_bps:12000000,sent_bps:2400000,total_recv_gb:120.23,total_sent_gb:35.43,history_down:Array.from({length:60},(_,i)=>1000000+Math.sin(i)*500000),history_up:Array.from({length:60},(_,i)=>200000+Math.cos(i)*100000),interfaces:[{up:true,name:'en0'}]}}});
+ cases.push({name:'animation-paused-no-clock',state:{page:'ambient',animation:{preset:'orbit',time:15,seed:52,show_clock:false,paused:true}}});
+
+ for(const background of ['dragon','it'])for(const view of ['overview','billing','entitlements'])cases.push({name:'openai-'+background+'-'+view,state:{page:'openai',subscription_view:view,subscription:sub,subscription_background:background,subscription_background_transparency:25}});
+ const withModels={...acc(0),usage:{...acc(0).usage,seven_day_sonnet:{utilization:12},seven_day_opus:{utilization:34},seven_day_haiku:{utilization:56}}};cases.push({name:'claude-models',state:{page:'claude',claude:{accounts:[withModels],active_account_id:'0'}}});
+ for(const [width,height,suffix] of [[1280,720,'H'],[720,1280,'V']]){
+ await p.setViewportSize({width,height});await p.goto('http://127.0.0.1:8765/display.html?renderer=1');
+ for(const c of cases){await p.evaluate(async({s,m})=>window.renderFrame(s,m),{s:{...state,...c.state},m:c.metrics||metrics});await p.screenshot({path:`${out}/${c.name}-${suffix}.png`});
+ const issues=await p.evaluate(()=>{const problems=[];for(const e of document.querySelectorAll('#display *')){const style=getComputedStyle(e);if(style.display==='none'||style.visibility==='hidden'||!e.getClientRects().length||e.closest('picture')||e.matches('svg,svg *,canvas'))continue;const r=e.getBoundingClientRect();if(r.width&&r.height&&(r.x< -1||r.y< -1||r.right>innerWidth+1||r.bottom>innerHeight+1))problems.push('viewport:'+e.className);if(e.children.length===0&&style.overflow!=='hidden'&&e.scrollWidth>e.clientWidth+2&&e.clientWidth>0)problems.push('text:'+e.className);const card=e.closest('.account-card,.feature-cell,.combined-quotas');if(card){const a=card.getBoundingClientRect();if(r.bottom>a.bottom+1||r.right>a.right+1||r.left<a.left-1)problems.push('card:'+e.className);}}for(const parent of document.querySelectorAll('.subscription-screen,.feature-cell,.shared-window')){const kids=[...parent.children].filter(e=>!e.matches('picture')&&getComputedStyle(e).position!=='absolute'&&e.getBoundingClientRect().height>0);for(let i=1;i<kids.length;i++){const a=kids[i-1].getBoundingClientRect(),b=kids[i].getBoundingClientRect();if(b.top<a.bottom-1&&b.left<a.right-1&&b.right>a.left+1)problems.push('overlap:'+kids[i].className);}}return [...new Set(problems)];});report.push({name:c.name+'-'+suffix,issues});}
+ }
+ for(const width of [1440,1024,768,390]){await p.setViewportSize({width,height:1000});await p.goto('http://127.0.0.1:8765/');await p.waitForSelector('#connection.online');await p.screenshot({path:`${out}/console-${width}.png`,fullPage:true});report.push({name:'console-'+width,issues:await p.evaluate(()=>document.documentElement.scrollWidth>innerWidth?['horizontal overflow']:[])});}
+ for(const preset of ['orbit','aurora','flow','stars']){await p.goto('http://127.0.0.1:8765/display.html?renderer=1');const result=await p.evaluate(preset=>{const canvas=document.createElement('canvas'),draw=time=>{window.TurzxAnimations.draw(canvas,{preset,width:1280,height:720,time,seed:42,show_clock:false});return canvas.toDataURL();};const first=draw(10);return {repeat:first===draw(10),moves:first!==draw(20)};},preset);if(!result.repeat||!result.moves)errors.push('animation time/seed: '+preset);}
+ fs.writeFileSync(out+'/report.json',JSON.stringify({errors,report},null,2));console.log(JSON.stringify({errors,issues:report.filter(r=>r.issues.length)},null,2));await b.close();if(errors.length||report.some(r=>r.issues.length))process.exitCode=1;
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -30,3 +30,10 @@ body.openai-workbench{background:#fff;color:#202020;font-family:'Segoe UI','Micr
 .openai-workbench .control-section,.openai-workbench .session-strip,.openai-workbench .scene-guidance{border-color:#e2e2e5}
 .openai-workbench .notice.success{background:#e6f2fa;border-color:#b6d7ee;color:var(--workbench-accent,#0550ae)}
 .openai-workbench .connection.online i,.openai-workbench .connection.active i{background:var(--workbench-accent,#0069cc)}
+
+/* Claude pages retain the same controls with a warm accent. */
+body.claude-workbench{--workbench-accent:#a94d31;--workbench-accent-hover:#843b25;--workbench-selection:#f0ddcd;background:#f8f5ef}
+.claude-workbench .topbar,.claude-workbench .channels,.claude-workbench .mixer{background:#f5f0e8;border-color:#dfd7cd}
+.claude-workbench .stage{background:#f8f5ef}
+.claude-workbench .preview-stage{background:#eee5d9;border-color:#dfd7cd}
+.claude-workbench .page-button[aria-current=true]{background:#eadbcb}

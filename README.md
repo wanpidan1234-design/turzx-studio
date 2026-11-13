@@ -4,11 +4,15 @@
 
 **把 USB 副屏变成可切换的实时看板。**
 
-TURZX Studio 是本地运行的 Windows 应用：浏览器负责预览和控制，电脑把页面渲染成不透明 RGBA PNG，再通过现有 WinUSB 驱动发送给图灵副屏。包含九种页面、实时硬件数据、OpenAI 订阅额度、横竖屏重排、自动轮播、专注计时和便签。
+macOS 可通过 PyUSB/libusb 连接同型号副屏，见 [macOS 运行与设备验证](docs/macos.md)。新增 Claude 订阅屏幕与 1–5 账号总览，见 [Claude 与 cswap 屏幕](docs/claude-cswap.md)。
 
-A local Windows control panel and page renderer for the TURZX 5.2-inch USB display. Uses Python, Playwright and native WinUSB. Local scenes work offline; the optional OpenAI subscription scene reads the signed-in account online.
+TURZX Studio 是本地运行的 Windows / macOS 应用：浏览器负责预览和控制，电脑把页面渲染成不透明 RGBA PNG，再通过WinUSB 或 libusb 发送给图灵副屏。包含十一种页面、实时硬件数据、OpenAI 订阅额度、横竖屏重排、自动轮播、专注计时和便签。
+
+A local Windows / macOS control panel and page renderer for the TURZX 5.2-inch USB display. Uses Python, Playwright and WinUSB / libusb. Local scenes work offline; the optional OpenAI subscription scene reads the signed-in account online.
 
 ![生成氛围页面](docs/images/ambient.png)
+
+macOS 独立 [Claude 账号面板 App](docs/account-app.md) 复用副屏画面。点击账号卡片即可通过 cswap 切换本机默认 Claude Code 账号。
 
 ## 支持范围
 
@@ -16,8 +20,8 @@ A local Windows control panel and page renderer for the TURZX 5.2-inch USB displ
 |---|---|
 | 已验证设备 | TURZX 5.2 英寸 USB，`VID:PID 1CBE:0050` |
 | 画布 | 横屏 `1280×720`；设备原生帧 `720×1280` |
-| 系统 | Windows 10 / 11；开发与实机测试使用 Windows 11 |
-| 传输 | Windows 原生 WinUSB，完整 RGBA PNG 帧 |
+| 系统 | Windows 10 / 11；macOS（PyUSB/libusb） |
+| 传输 | Windows 原生 WinUSB / macOS libusb，完整 RGBA PNG 帧 |
 | 控制台 | `http://127.0.0.1:8765/`，仅监听本机 |
 
 这是社区项目，与 TURZX 厂商无隶属关系。旧款串口 5 英寸屏和其他 PID 尚未验证，不应直接套用本驱动。本应用不会自动安装驱动、刷固件或写入设备持久设置；Windows 登录自启动需单独启用。
@@ -35,9 +39,13 @@ npm ci
 .\启动.cmd
 ```
 
-屏幕方向、当前页面、发送帧率，以及 OpenAI 订阅页的背景和透明度会自动保存到本机 `runtime/display-preferences.json`，重启服务后恢复。
+投屏配置自动保存到本机 `runtime/display-preferences.json`，重新打开后恢复上次页面、背景、颜色、背光、轮播、便签及场景设置。完整字段和恢复规则见 [最后配置记忆](docs/macos.md#最后配置记忆)。
 
 正在投屏时关闭服务，下次启动会自动继续投屏；先点击“停止”再关闭，下次保持停止。USB 断开后服务会等待设备接回并自动恢复：设备缺席时每 2 秒只读检查，连接失败时按 2、4、8、16、30 秒间隔重试，成功发送一帧后重置间隔。手动停止或关闭服务会取消自动重连。
+
+macOS 用户使用 `.venv/bin/python autostart_macos.py` 启用登录启动；取消时加 `--disable`。配置、恢复投屏和日志说明见 [macOS 登录启动](docs/macos.md#登录后自动启动)。
+
+执行 `.venv/bin/python open_macos.py --install-desktop` 安装桌面「副屏管理.app」。该入口会复用或启动服务，再打开管理页；关闭服务后也能通过它重新打开。
 
 ### Windows 登录后静默启动
 
@@ -58,7 +66,7 @@ npm ci
 
 选页、计时和便签在服务运行期间保留，退出后恢复默认值。亮度无法读回，初始值标为未知，只有主动调整滑块才发送亮度命令。
 
-## 九种页面
+## 十一种页面
 
 | 页面 | 内容 |
 |---|---|
@@ -68,6 +76,8 @@ npm ci
 | 专注空间 | 可暂停倒计时和便签 |
 | 动画实验室 | 轨道、极光、流场和星际漫游，支持速度、细节、暂停与时钟开关 |
 | OpenAI 订阅 | ChatGPT 功能剩余次数、Work / Codex 共享额度、真实订阅周期与续费状态，VS Code 浅色风格 |
+| Claude 订阅 | 当前 cswap 账号的 5 小时、7 天与模型独立额度，原创二次元形象 |
+| Claude 多账号 | 1–5 个账号同页显示 5h、7d、Fable 已使用额度与单行重置倒计时 |
 | 音乐一隅 | 媒体数据源尚未接入时的明确空态 |
 | 更多可能 | 已实现、待接入、待验证能力说明 |
 | 显示校准 | 四角、色条、灰阶、字号与圆形测试 |
@@ -144,3 +154,15 @@ H.264 直传、离线播放、官方桌面模式及播放器、天气、训练�
 - [turing-smart-screen-python](https://github.com/mathoudebine/turing-smart-screen-python)：型号与兼容性资料；其 GPL 源码未打包进本项目。
 - [usausa/turing-smart-screen](https://github.com/usausa/turing-smart-screen)：MIT 协议参考，许可见 [THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)。
 - Manrope 字体：SIL OFL 1.1，见 [OFL-Manrope.txt](web/fonts/OFL-Manrope.txt)。
+
+
+## 设计稿实现
+
+界面已按 2026-11-13 的 TURZX 设计稿改版，覆盖 11 个场景、OpenAI 三页、四种动画、Claude 0–5 账号布局，以及桌面和窄屏管理页。样例账号与额度只用于浏览器验证，不写入运行配置。详见 [设计实现与验证](docs/design/designer-handoff/implementation.md)。
+
+Inter 字体自托管于 `web/fonts/InterVariable.woff2`，许可见 `web/fonts/OFL-Inter.txt`。
+
+
+人物图片可在管理页「显示 → 背景图片」调整亮度、色彩浓度和淡化程度。设置自动保存，并同步到 Claude 与 OpenAI 背景。默认浅亮参数为 112%、85%、12%。
+
+Claude 背景现可在「显示 → 背景图片」点击缩略图选择：从容站姿、侧望凝思、抬手相伴或纯色。OpenAI 的背景选择与透明度也放在此处。选择自动保存，重启后保留。

@@ -1,0 +1,10 @@
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#fbf4ec;font-family:var(--font-ui)}
+#display{position:absolute;transform-origin:top left;width:1280px;height:720px}
+.account-card{position:relative;transition:box-shadow .15s,background .15s}
+.account-hit{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:inherit;background:transparent;cursor:pointer;touch-action:manipulation}
+.account-hit:focus-visible{outline:4px solid #a84b26;outline-offset:5px}
+.account-card:has(.account-hit:hover:not(:disabled)){background:#fffaf4;box-shadow:0 5px 24px #6b47332b}
+.account-hit:disabled{cursor:wait}.account-card.switch-pending{box-shadow:0 0 0 3px #c2602f}
+#feedback{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);max-width:calc(100% - 32px);width:max-content;padding:9px 16px;border:1px solid #e8dccf;border-radius:12px;background:rgba(255,252,248,.96);color:#6b5a4f;font-size:13px;line-height:1.5;text-align:center;box-shadow:0 3px 16px #2b211c0d}
+#feedback[data-error="true"]{color:#8c2f12;border-color:#c2602f}
+@media(prefers-reduced-motion:reduce){.account-card{transition:none}}
